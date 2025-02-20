@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAULI Foundation - Monthly Donation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            max-width: 400px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MAULI Foundation</h1>
+        <h2>Monthly Donation</h2>
+        <form id="donationForm">
+            <label for="plan">Select Your Monthly Donation Plan:</label>
+            <select id="plan" required>
+                <option value="" disabled selected>Loading plans...</option>
+            </select>
+            <button type="submit">Donate Now</button>
+        </form>
+    </div>
+
+    <script>
+        const KEY_ID = 'rzp_live_b5AHusmnjnhlQk';
+        const KEY_SECRET = 'cYbbNOhayJ4GElCVdyrNQFMZ';
+        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+        const RAZORPAY_API_URL = 'https://api.razorpay.com/v1';
+        
+        // Base64 encoding for Basic Auth
+        const AUTH_HEADER = 'Basic ' + btoa(`${KEY_ID}:${KEY_SECRET}`);
+
+        // Fetch Plans from Razorpay
+        async function fetchPlans() {
+            try {
+                const response = await fetch(CORS_PROXY + RAZORPAY_API_URL + '/plans', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': AUTH_HEADER
+                    }
+                });
+                const data = await response.json();
+                const plans = data.items;
+                const planSelect = document.getElementById('plan');
+                planSelect.innerHTML = '<option value="" disabled selected>Select Plan</option>';
+                plans.forEach(plan => {
+                    const option = document.createElement('option');
+                    option.value = plan.id;
+                    option.text = `${plan.item.name} - ₹${plan.item.amount / 100} per ${plan.period}`;
+                    planSelect.appendChild(option);
+                });
+            } catch (error) {
+                alert('Failed to load plans.');
+            }
+        }
+
+        // Create Subscription
+        async function createSubscription(planId) {
+            const subscriptionData = {
+                plan_id: planId,
+                total_count: 12,
+                customer_notify: 1
+            };
+
+            try {
+                const response = await fetch(CORS_PROXY + RAZORPAY_API_URL + '/subscriptions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': AUTH_HEADER,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(subscriptionData)
+                });
+                const result = await response.json();
+                if (result.short_url) {
+                    window.location.href = result.short_url;
+                } else {
+                    alert("Failed to create subscription.");
+                }
+            } catch (error) {
+                alert("Error in creating subscription.");
+            }
+        }
+
+        // Load Plans on Page Load
+        window.onload = fetchPlans;
+
+        // Form Submit Handler
+        document.getElementById('donationForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const planId = document.getElementById('plan').value;
+            if (!planId) {
+                alert("Please select a plan.");
+                return;
+            }
+            createSubscription(planId);
+        });
+    </script>
+</body>
+</html>
